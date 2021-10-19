@@ -15,7 +15,8 @@ import (
 
 type NamespaceReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme    *runtime.Scheme
+	Namespace string
 }
 
 const (
@@ -52,7 +53,7 @@ func (r *NamespaceReconciler) createSecrets(ctx context.Context, secretNames str
 	for _, secretName := range strings.Split(secretNames, ",") {
 
 		var secret corev1.Secret
-		if err := r.Client.Get(ctx, types.NamespacedName{Name: secretName}, &secret); err != nil {
+		if err := r.Client.Get(ctx, types.NamespacedName{Name: secretName, Namespace: r.Namespace}, &secret); err != nil {
 			if apierrors.IsNotFound(err) {
 				log.Error(err, "Unable to fetch secret")
 			}
