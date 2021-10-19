@@ -1,0 +1,27 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Docker Login
+        uses: docker/login-action@v1.8.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PWD }}
+          logout: true
+
+      - name: Build the Docker image
+        run: |
+          PROJECT=namespace-provisioner
+          BUILD_TAG=$(date +%Y%m%d)
+          docker build -t ${{ secrets.DOCKERHUB_USER }}/${PROJECT}:${BUILD_TAG} -f Dockerfile .
+          docker push ${{ secrets.DOCKERHUB_USER }}/${PROJECT}:${BUILD_TAG}
