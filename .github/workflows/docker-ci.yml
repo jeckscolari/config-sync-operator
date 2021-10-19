@@ -24,6 +24,6 @@ jobs:
 
       - name: Build the Docker image
         run: |
-          IMAGE_TAG_BASE=${{ secrets.DOCKERHUB_USER }}/namespace-provisioner
-          VERSION=$(date +%Y%m%d)
+          export IMAGE_TAG_BASE=${{ secrets.DOCKERHUB_USER }}/namespace-provisioner
+          export VERSION=$(date +%Y%m%d)
           make docker-build docker-push
