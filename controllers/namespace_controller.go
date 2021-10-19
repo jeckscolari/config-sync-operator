@@ -20,7 +20,7 @@ type NamespaceReconciler struct {
 }
 
 const (
-	secretsAnnotation = "github.com/jeckscolari/namespace-provisioner/secrets"
+	secretsAnnotation = "namespace-provisioner.jeckscolari.github.com/secrets"
 )
 
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;create;update;patch;delete
