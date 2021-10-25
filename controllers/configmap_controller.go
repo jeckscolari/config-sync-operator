@@ -22,6 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -60,14 +61,16 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	namespacesSelector := configMap.Annotations[SyncAnnotation]
 
-	namespaces, err := ListNamespaces(r.Client, ctx, namespacesSelector)
+	if len(namespacesSelector) > 0 {
+		namespaces, err := ListNamespaces(r.Client, ctx, namespacesSelector)
 
-	if err != nil {
-		log.Error(err, "unable to list Namespaces")
-	}
+		if err != nil {
+			log.Error(err, "unable to list Namespaces")
+		}
 
-	for _, namespace := range namespaces.Items {
-		r.upsertConfigMap(ctx, configMap, namespace)
+		for _, namespace := range namespaces.Items {
+			r.upsertConfigMap(ctx, configMap, namespace)
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -83,27 +86,28 @@ func (r *ConfigMapReconciler) upsertConfigMap(ctx context.Context, source corev1
 
 	var old corev1.ConfigMap
 
-	if err := r.Get(ctx, client.ObjectKeyFromObject(&source), &old); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: source.Name, Namespace: target.Name}, &old); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.Info("creating ConfigMap")
+			log.Info("creating ConfigMap", "source object", source.Name, "target namespace", target.Name)
 
-			r.Create(ctx, &corev1.ConfigMap{
+			if err := r.Create(ctx, &corev1.ConfigMap{
 				ObjectMeta: meta,
 				Data:       source.Data,
-			})
+			}); err != nil {
+				log.Error(err, "unable to create ConfigMap")
+			}
 		} else {
-			log.Error(err, "unable to fetch existing ConfigMap")
 			return err
 		}
-	}
+	} else {
+		log.Info("updating ConfigMap", "source object", source.Name, "target namespace", target.Name)
 
-	log.Info("updating ConfigMap")
+		old.Data = source.Data
 
-	old.Data = source.Data
-
-	if err := r.Update(ctx, &old); err != nil {
-		log.Error(err, "unable to update ConfigMap")
-		return err
+		if err := r.Update(ctx, &old); err != nil {
+			log.Error(err, "unable to update ConfigMap")
+			return err
+		}
 	}
 
 	return nil
