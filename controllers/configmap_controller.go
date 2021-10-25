@@ -59,6 +59,8 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
+	log.Info("processing ConfigMap")
+
 	namespacesSelector := configMap.Annotations[SyncAnnotation]
 
 	if len(namespacesSelector) > 0 {
